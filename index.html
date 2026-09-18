@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>ElitAire — Cincinnati VRV Training Lab</title>
+<style>
+  html, body {
+    margin: 0; padding: 0; height: 100%; width: 100%;
+    background: #0E1012; overflow: hidden;
+  }
+  /* fills the panel edge to edge; the loop is 16:9 so nothing is cropped
+     on a normal display, and letterboxing stays black if the panel isn't */
+  video {
+    position: fixed; inset: 0;
+    width: 100%; height: 100%;
+    object-fit: contain;
+    background: #0E1012;
+    border: 0; outline: 0;
+    pointer-events: none;      /* nothing for a passer-by to click */
+  }
+</style>
+</head>
+<body>
+
+<video id="v"
+       src="ElitAire-VRV-Lab-1080p.mp4"
+       autoplay muted loop playsinline
+       disablepictureinpicture
+       preload="auto"></video>
+
+<script>
+  // Teams Rooms loads this inside sandbox="allow-scripts allow-same-origin",
+  // so scripts run. Everything below is belt-and-braces: the video is already
+  // set to autoplay muted loop in plain HTML, which is what actually starts it.
+  (function () {
+    var v = document.getElementById('v');
+
+    function kick() {
+      var p = v.play();
+      if (p && p.catch) { p.catch(function () { /* retried below */ }); }
+    }
+
+    // start, and retry if the first attempt is refused
+    kick();
+    document.addEventListener('visibilitychange', function () {
+      if (!document.hidden) kick();
+    });
+
+    // if playback ever stalls, ends, or errors, restart cleanly
+    ['ended', 'pause', 'error', 'stalled', 'suspend'].forEach(function (evt) {
+      v.addEventListener(evt, function () {
+        setTimeout(function () {
+          if (v.readyState >= 2 && v.paused) { kick(); }
+        }, 400);
+      });
+    });
+
+    // watchdog: if the clock stops moving for 10s, reload the page.
+    // A signage screen has to recover on its own -- nobody is watching it.
+    var last = -1, stuck = 0;
+    setInterval(function () {
+      if (v.currentTime === last && !v.paused) { stuck++; } else { stuck = 0; }
+      last = v.currentTime;
+      if (stuck >= 5) { location.reload(); }
+    }, 2000);
+
+    // reload once every 6 hours so a long-running page never drifts
+    setTimeout(function () { location.reload(); }, 6 * 60 * 60 * 1000);
+  })();
+</script>
+
+</body>
+</html>
